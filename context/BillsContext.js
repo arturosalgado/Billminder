@@ -159,11 +159,17 @@ function BillsProviderInner({ children }) {
 
   const addBill = useCallback(
     async (input) => {
+      const name = String(input?.name ?? '').trim();
+      const amountCents = Number(input?.amountCents);
+      if (!name || !Number.isFinite(amountCents) || amountCents < 0) {
+        return false;
+      }
+
       const id = `bill-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
       const newBill = {
         id,
-        name: input.name.trim() || 'New bill',
-        amountCents: input.amountCents,
+        name,
+        amountCents,
         due: new Date(input.due.getTime()),
         paid: false,
         repeat: normalizeRepeat(input.repeat),
@@ -195,6 +201,7 @@ function BillsProviderInner({ children }) {
             : {}),
         },
       ]);
+      return true;
     },
     [customCategories]
   );

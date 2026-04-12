@@ -80,6 +80,38 @@ export function formatBillAmount(bill) {
   return formatAmountMinor(Number(bill?.amountCents) || 0, c);
 }
 
+/**
+ * Strips letters and symbols; keeps digits, commas, and at most one decimal point
+ * (no decimal point for zero-decimal currencies like JPY).
+ */
+export function sanitizeCurrencyAmountInput(raw, currencyCode) {
+  const c = normalizeCurrency(currencyCode);
+  let t = String(raw).replace(/[^\d.,]/g, '');
+  if (CURRENCY_MINOR_UNITS[c] === 0) {
+    t = t.replace(/\./g, '');
+  }
+  const firstDot = t.indexOf('.');
+  if (firstDot !== -1) {
+    t =
+      t.slice(0, firstDot + 1) + t.slice(firstDot + 1).replace(/\./g, '');
+  }
+  return t;
+}
+
+/**
+ * True if empty/whitespace or a plain amount like 12.3 or 1,234.56 (no letters).
+ * Zero-decimal currencies: digits only.
+ */
+export function isValidCurrencyAmountString(raw, currencyCode) {
+  const c = normalizeCurrency(currencyCode);
+  const s = String(raw).replace(/,/g, '').replace(/\s/g, '').trim();
+  if (s === '') return true;
+  if (CURRENCY_MINOR_UNITS[c] === 0) {
+    return /^\d+$/.test(s);
+  }
+  return /^(?:\d+\.?\d*|\.\d+)$/.test(s);
+}
+
 export function parseAmountStringToMinor(raw, currencyCode) {
   const c = normalizeCurrency(currencyCode);
   const digits = CURRENCY_MINOR_UNITS[c] ?? 2;

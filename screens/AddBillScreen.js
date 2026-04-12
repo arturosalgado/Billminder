@@ -13,6 +13,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Modal,
+  Alert,
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Picker } from '@react-native-picker/picker';
@@ -24,8 +25,10 @@ import {
   DEFAULT_CURRENCY,
   amountKeyboardType,
   amountPlaceholder,
+  isValidCurrencyAmountString,
   normalizeCurrency,
   parseAmountStringToMinor,
+  sanitizeCurrencyAmountInput,
 } from '../utils/currencies';
 import { REPEAT_OPTIONS } from '../utils/billRecurrence';
 const REMIND_OPTIONS = ['On the day', '1 day before', '3 days before', '7 days before'];
@@ -120,10 +123,28 @@ export default function AddBillScreen({ navigation }) {
   };
 
   const saveBill = async () => {
-    const amountCents = parseAmountStringToMinor(amount, currency);
+    const trimmedName = billName.trim();
+    if (!trimmedName) {
+      Alert.alert('Name required', 'Please enter a bill name.');
+      return;
+    }
 
-    await addBill({
-      name: billName,
+    if (!isValidCurrencyAmountString(amount, currency)) {
+      Alert.alert(
+        'Invalid amount',
+        'Use digits only, with an optional decimal (e.g. 12.30).'
+      );
+      return;
+    }
+
+    const amountCents = parseAmountStringToMinor(amount, currency);
+    if (amountCents < 0) {
+      Alert.alert('Invalid amount', 'Amount cannot be negative.');
+      return;
+    }
+
+    const added = await addBill({
+      name: trimmedName,
       amountCents,
       due: dueDate,
       repeat,
@@ -131,6 +152,10 @@ export default function AddBillScreen({ navigation }) {
       currency: normalizeCurrency(currency),
       remind,
     });
+    if (!added) {
+      Alert.alert('Could not save', 'Please check the bill name and amount.');
+      return;
+    }
 
     setBillName('');
     setAmount('');
@@ -206,7 +231,9 @@ export default function AddBillScreen({ navigation }) {
         <TextInput
           style={styles.input}
           value={amount}
-          onChangeText={setAmount}
+          onChangeText={(t) =>
+            setAmount(sanitizeCurrencyAmountInput(t, currency))
+          }
           placeholder={amountPlaceholder(currency)}
           placeholderTextColor={colors.textPlaceholder}
           keyboardType={amountKeyboardType(currency)}
