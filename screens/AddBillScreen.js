@@ -31,6 +31,7 @@ import {
   sanitizeCurrencyAmountInput,
 } from '../utils/currencies';
 import { REPEAT_OPTIONS } from '../utils/billRecurrence';
+import { normalizeBillNameInput } from '../utils/billUtils';
 const REMIND_OPTIONS = ['On the day', '1 day before', '3 days before', '7 days before'];
 
 function formatDisplayDate(d) {
@@ -123,7 +124,7 @@ export default function AddBillScreen({ navigation }) {
   };
 
   const saveBill = async () => {
-    const trimmedName = billName.trim();
+    const trimmedName = normalizeBillNameInput(billName);
     if (!trimmedName) {
       Alert.alert('Name required', 'Please enter a bill name.');
       return;
@@ -132,13 +133,13 @@ export default function AddBillScreen({ navigation }) {
     if (!isValidCurrencyAmountString(amount, currency)) {
       Alert.alert(
         'Invalid amount',
-        'Use digits only, with an optional decimal (e.g. 12.30).'
+        'Use digits only, with an optional decimal (e.g. 12.30). Negative amounts are not allowed.'
       );
       return;
     }
 
     const amountCents = parseAmountStringToMinor(amount, currency);
-    if (amountCents < 0) {
+    if (!Number.isFinite(amountCents) || amountCents < 0) {
       Alert.alert('Invalid amount', 'Amount cannot be negative.');
       return;
     }

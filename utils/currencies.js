@@ -106,6 +106,8 @@ export function isValidCurrencyAmountString(raw, currencyCode) {
   const c = normalizeCurrency(currencyCode);
   const s = String(raw).replace(/,/g, '').replace(/\s/g, '').trim();
   if (s === '') return true;
+  // ASCII hyphen-minus and Unicode minus (e.g. pasted “−50”)
+  if (/[-−]/.test(s)) return false;
   if (CURRENCY_MINOR_UNITS[c] === 0) {
     return /^\d+$/.test(s);
   }
@@ -118,6 +120,7 @@ export function parseAmountStringToMinor(raw, currencyCode) {
   const cleaned = String(raw).replace(/,/g, '').trim();
   const parsed = parseFloat(cleaned);
   if (!Number.isFinite(parsed)) return 0;
+  if (parsed < 0) return NaN;
   if (digits === 0) return Math.round(parsed);
   return Math.round(parsed * minorUnitScale(c));
 }

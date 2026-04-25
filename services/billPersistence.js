@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 import { deserializeCategory } from '../utils/billCategories';
+import { normalizeBillNameInput } from '../utils/billUtils';
 import { normalizeCurrency } from '../utils/currencies';
 import {
   buildNextBillAfterMarkPaid,
@@ -23,8 +24,15 @@ export async function cancelScheduledNotificationById(notificationId) {
 export function serializeBills(bills) {
   return JSON.stringify(
     bills.map((b) => {
+      const name = normalizeBillNameInput(b?.name) || 'Unnamed bill';
+      const amountParsed = Number(b.amountCents);
+      const amountCents = Number.isFinite(amountParsed)
+        ? Math.max(0, Math.round(amountParsed))
+        : 0;
       const row = {
         ...b,
+        name,
+        amountCents,
         due: b.due instanceof Date ? b.due.toISOString() : b.due,
       };
       if (b.reminderOverrideAt instanceof Date) {
@@ -61,10 +69,20 @@ export function deserializeBills(data) {
       typeof raw.reminderScheduledForMs === 'number'
         ? raw.reminderScheduledForMs
         : undefined;
+    const nameNormalized = normalizeBillNameInput(
+      typeof raw.name === 'string' ? raw.name : ''
+    );
+    if (!nameNormalized) continue;
+
+    const amountParsed = Number(raw.amountCents);
+    const amountCents = Number.isFinite(amountParsed)
+      ? Math.max(0, Math.round(amountParsed))
+      : 0;
+
     out.push({
       id: raw.id,
-      name: typeof raw.name === 'string' ? raw.name : 'Bill',
-      amountCents: Number(raw.amountCents) || 0,
+      name: nameNormalized,
+      amountCents,
       due,
       paid: Boolean(raw.paid),
       repeat: normalizeRepeat(

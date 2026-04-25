@@ -64,6 +64,33 @@ const FILTER_DISPLAY_NAME = {
   paid: 'Paid',
 };
 
+const SORT_KEYS = ['due', 'amount', 'name'];
+
+const SORT_TAB_CONFIG = {
+  due: { label: 'Due Date', a11y: 'Sort by due date, earliest first' },
+  amount: { label: 'Amount', a11y: 'Sort by amount, largest first' },
+  name: { label: 'Name', a11y: 'Sort by name, A to Z' },
+};
+
+function compareBillsForSort(a, b, sortBy) {
+  if (sortBy === 'amount') {
+    const d = b.amountCents - a.amountCents;
+    if (d !== 0) return d;
+  } else if (sortBy === 'name') {
+    const n = a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
+    if (n !== 0) return n;
+  } else {
+    const ta = startOfDay(a.due).getTime();
+    const tb = startOfDay(b.due).getTime();
+    if (ta !== tb) return ta - tb;
+  }
+  return a.id.localeCompare(b.id);
+}
+
+function sortBillsCopy(bills, sortBy) {
+  return [...bills].sort((a, b) => compareBillsForSort(a, b, sortBy));
+}
+
 function filterCounts(bills, todayStart) {
   let upcoming = 0;
   let overdue = 0;
@@ -132,6 +159,7 @@ export default function HomeScreen({ navigation }) {
   const [refreshing, setRefreshing] = useState(false);
   const [filter, setFilter] = useState('all');
   const [categoryFilter, setCategoryFilter] = useState(null);
+  const [sortBy, setSortBy] = useState('due');
   const [searchQuery, setSearchQuery] = useState('');
   const searchInputRef = useRef(null);
   const { permissionStatus, notificationsReady } = useNotificationPermission();
@@ -145,6 +173,9 @@ export default function HomeScreen({ navigation }) {
     useCallback(() => {
       setFilter('all');
       setCategoryFilter(null);
+      return () => {
+        setSortBy('due');
+      };
     }, [])
   );
 
@@ -241,6 +272,11 @@ export default function HomeScreen({ navigation }) {
       billNameMatchesSearch(b, q)
     );
   }, [searchActive, searchTrimmed, categoryFilteredBills]);
+
+  const sortedListBills = useMemo(
+    () => sortBillsCopy(listBills, sortBy),
+    [listBills, sortBy]
+  );
 
   const monthLabel = formatMonthYear(today);
 
@@ -596,6 +632,44 @@ export default function HomeScreen({ navigation }) {
             ) : null}
 
             {!searchActive ? (
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.sortPillsScrollContent}
+                style={styles.sortPillsScroll}
+              >
+                {SORT_KEYS.map((key) => {
+                  const active = sortBy === key;
+                  const cfg = SORT_TAB_CONFIG[key];
+                  return (
+                    <Pressable
+                      key={key}
+                      onPress={() => setSortBy(key)}
+                      style={({ pressed }) => [
+                        styles.sortPill,
+                        active && styles.sortPillActive,
+                        pressed && styles.tabChipPressed,
+                      ]}
+                      accessibilityRole="button"
+                      accessibilityState={{ selected: active }}
+                      accessibilityLabel={cfg.a11y}
+                    >
+                      <Text
+                        style={[
+                          styles.sortPillText,
+                          active && styles.sortPillTextActive,
+                        ]}
+                        numberOfLines={1}
+                      >
+                        {cfg.label}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </ScrollView>
+            ) : null}
+
+            {!searchActive ? (
               <>
                 <ScrollView
                   horizontal
@@ -668,7 +742,7 @@ export default function HomeScreen({ navigation }) {
               <Text style={styles.sectionTitle}>Bills</Text>
             </Pressable>
             <FlatList
-              data={listBills}
+              data={sortedListBills}
               keyExtractor={(item) => item.id}
               renderItem={renderBill}
               contentContainerStyle={styles.listContent}
@@ -980,6 +1054,40 @@ const styles = StyleSheet.create({
   },
   tabCountSpacing: {
     marginLeft: 4,
+  },
+  sortPillsScroll: {
+    flexGrow: 0,
+  },
+  sortPillsScrollContent: {
+    paddingHorizontal: layout.screenPaddingHorizontal,
+    paddingTop: 0,
+    paddingBottom: 8,
+    paddingRight: layout.screenPaddingHorizontal + 4,
+    alignItems: 'center',
+    flexDirection: 'row',
+  },
+  sortPill: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    marginRight: 8,
+    backgroundColor: colors.card,
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
+    minHeight: 32,
+    justifyContent: 'center',
+  },
+  sortPillActive: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  sortPillText: {
+    fontSize: fontSize.homeFilterTab - 1,
+    fontWeight: fontWeight.semibold,
+    color: colors.textSecondary,
+  },
+  sortPillTextActive: {
+    color: colors.white,
   },
   categoryFilterScroll: {
     flexGrow: 0,

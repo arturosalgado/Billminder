@@ -1,5 +1,13 @@
 import { formatAmountMinor } from './currencies';
 
+/** Strip zero-width / BOM characters so a “name” cannot be only invisible glyphs */
+const BILL_NAME_INVISIBLE_CHARS = /[\u200B-\u200D\uFEFF]/g;
+
+/** Normalized bill name for validation and storage (trim + strip invisible chars). */
+export function normalizeBillNameInput(raw) {
+  return String(raw ?? '').replace(BILL_NAME_INVISIBLE_CHARS, '').trim();
+}
+
 export const STATUS = {
   PAID: 'paid',
   OVERDUE: 'overdue',

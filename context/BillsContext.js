@@ -9,7 +9,7 @@ import {
 } from 'react';
 import { Platform } from 'react-native';
 import * as Haptics from 'expo-haptics';
-import { addDays } from '../utils/billUtils';
+import { addDays, normalizeBillNameInput } from '../utils/billUtils';
 import { normalizeCategoryInput } from '../utils/billCategories';
 import { CategoriesProvider, useCategories } from './CategoriesContext';
 import { normalizeCurrency } from '../utils/currencies';
@@ -159,8 +159,11 @@ function BillsProviderInner({ children }) {
 
   const addBill = useCallback(
     async (input) => {
-      const name = String(input?.name ?? '').trim();
-      const amountCents = Number(input?.amountCents);
+      const name = normalizeBillNameInput(input?.name);
+      const amountRaw = Number(input?.amountCents);
+      const amountCents = Number.isFinite(amountRaw)
+        ? Math.round(amountRaw)
+        : NaN;
       if (!name || !Number.isFinite(amountCents) || amountCents < 0) {
         return false;
       }

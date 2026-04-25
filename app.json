@@ -14,7 +14,8 @@
       "backgroundColor": "#0F3460"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.sisadesel.billminder"
     },
     "android": {
       "adaptiveIcon": {
@@ -22,7 +23,8 @@
         "foregroundImage": "./assets/icon.png"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.sisadesel.billminder"
     },
     "web": {
       "output": "static",
@@ -48,6 +50,11 @@
     ],
     "experiments": {
       "reactCompiler": true
+    },
+    "extra": {
+      "eas": {
+        "projectId": "f45a2284-67e5-4c3b-a269-327b26b233aa"
+      }
     }
   }
 }
