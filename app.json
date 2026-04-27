@@ -15,7 +15,7 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.sisadesel.billminder"
+      "bundleIdentifier": "com.yourdomain.billminder"
     },
     "android": {
       "adaptiveIcon": {
